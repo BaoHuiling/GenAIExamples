@@ -1,0 +1,3 @@
+[submodule "vector_stores"]
+	path = VideoRAGQnA/embedding/vector_stores
+	url = https://github.com/intel-sandbox/vectorDB_service.git
