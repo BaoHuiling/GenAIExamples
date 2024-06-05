@@ -49,43 +49,54 @@ video_ingest/
 
 ## Setup and Installation
 
-Install pip requirements
+### Customizing Configuration
+
+1. Clone the repository to your local machine.
+2. Navigate to the `VideoRAGQnA/conf` directory and modify the configuration files according to your requirements.  
+
+>**Note:** By default no changes needed. If you are not using file structure similar to video_ingest described above, consider changing it in `config.yaml`.
+
+3. Set environment variables.
 
 ```bash
-cd VideoRAGQnA
-pip3 install -r docs/requirements.txt
-```
-
-The current framework supports both Chroma DB and Intel's VDMS, use either of them,
-
-Running Chroma DB as docker container
-```bash
-docker run -d -p 8000:8000 chromadb/chroma
-```
-**or**
-
-Running VDMS DB as docker container
-```bash
-docker run -d -p 55555:55555 intellabs/vdms:latest
-```
-
-**Note:** If you are not using file structure similar to what is described above, consider changing it in ```config.yaml```.
-
-Update your choice of db and port in ```config.yaml```.
-
-```bash
-export VECTORDB_SERVICE_HOST_IP=<ip of host where vector db is running>
-
+export VECTORDB_SERVICE_HOST_IP=<ip of vector db host>
+export CHOICE_OF_DB=<choice of db: vdms or chroma>
 export HUGGINGFACEHUB_API_TOKEN='<your HF token>' 
 ```
-HuggingFace hub API token can be generated [here](https://huggingface.co/login?next=%2Fsettings%2Ftokens).
 
-Generating Image embeddings and store them into selected db, specify config file location and video input location
+>HuggingFace hub API token can be generated [here](https://huggingface.co/login?next=%2Fsettings%2Ftokens).
+
+### Build docker images
+
 ```bash
-python3 embedding/generate_store_embeddings.py docs/config.yaml video_ingest/videos/
+# build vector store
+cd VideoRAGQnA/vector_stores
+docker compose build
+# build video ingestor and UI
+cd .. # VideoRAGQnA
+docker compose build
 ```
 
-**Web UI Video RAG**
+### Starting the Service
+
+Run Vectorstores microservice, which will listen on port 9001. This will setup both Chroma and Intel VDMS.
+
 ```bash
-streamlit run video-rag-ui.py --server.address 0.0.0.0 --server.port 50055
+cd vector_stores
+docker compose up
 ```
+
+Run video ingestor microservice, this will process the videos, embedding and store them to vectorDB. The current framework supports both Chroma DB and Intel's VDMS, use either of them by specify the env variable `CHOICE_OF_DB`.
+
+```bash
+cd .. # VideoRAGQnA
+docker compose up video-ingestor
+# wait until the ingestion finished (container exit)
+```
+
+Start Video RAG Web UI
+
+```bash
+docker compose up user-interface
+```
+Open a web browser and navigate to http://ip_of_ui_host:50055 to access the service.

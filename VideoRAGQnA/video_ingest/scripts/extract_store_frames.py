@@ -1,10 +1,15 @@
+import datetime
+import json
+import logging
 import os
 import cv2
-import json
-import datetime
-import random
 from tzlocal import get_localzone
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s:     [%(asctime)s] %(message)s',
+    datefmt='%d/%m/%Y %I:%M:%S'
+    )
     
 def process_all_videos(path, image_output_dir, meta_output_dir, N, selected_db):
 
@@ -24,13 +29,14 @@ def process_all_videos(path, image_output_dir, meta_output_dir, N, selected_db):
     
         total_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
         
-        #print (f'fps {fps}')
-        #print (f'total frames {total_frames}')
+        #logging.info(f'fps {fps}')
+        #logging.info(f'total frames {total_frames}')
         
         mod = int(fps // N)
-        if mod == 0: mod = 1
+        if mod == 0: 
+            mod = 1
         
-        print (f'total frames {total_frames}, N {N}, mod {mod}')
+        logging.info(f'total frames {total_frames}, N {N}, mod {mod}')
         
         # Variables to track frame count and desired frames
         frame_count = 0
@@ -75,18 +81,18 @@ def process_all_videos(path, image_output_dir, meta_output_dir, N, selected_db):
         
         # Release the video capture and close all windows
         cap.release()
-        print(f"{frame_count/mod} Frames extracted and metadata saved successfully.") 
+        logging.info(f"{frame_count/mod} Frames extracted and metadata saved successfully.") 
         return fps, total_frames, metadata_file
 
     videos = [file for file in os.listdir(path) if file.endswith('.mp4')]
 
-    # print (f'Total {len(videos)} videos will be processed')
+    # logging.info(f'Total {len(videos)} videos will be processed')
     metadata = {}
 
     for i, each_video in enumerate(videos):
         video_path = os.path.join(path, each_video)
         date_time = datetime.datetime.now() 
-        print("date_time : ",date_time)
+        logging.info(f"date_time : {date_time}")
         # Get the local timezone of the machine
         local_timezone = get_localzone()
         fps, total_frames, metadata_file = extract_frames(video_path, image_output_dir, meta_output_dir, N, date_time, local_timezone)
@@ -97,8 +103,8 @@ def process_all_videos(path, image_output_dir, meta_output_dir, N, selected_db):
                 'embedding_path': f'embeddings/{each_video}.pt',
                 'video_path': f'{path}/{each_video}',
             }
-        print (f'✅  {i+1}/{len(videos)}')
+        logging.info(f'✅  {i+1}/{len(videos)}')
 
-    metadata_file = os.path.join(meta_output_dir, f"metadata.json")
+    metadata_file = os.path.join(meta_output_dir, "metadata.json")
     with open(metadata_file, "w") as f:
         json.dump(metadata, f, indent=4)

@@ -1,30 +1,30 @@
 import os
-
-from embedding.vector_stores import db
 import time
-import torch
-
-import torch
-import streamlit as st
-from transformers import AutoTokenizer, AutoModelForCausalLM, TextIteratorStreamer
-from transformers import set_seed
-
+import threading
 from typing import Any, List, Mapping, Optional
+
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
-import threading
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, TextIteratorStreamer, set_seed
+import streamlit as st
+
+import requests
+
 from utils import config_reader as reader
 from utils import prompt_handler as ph
-# from vector_stores import db
+
 HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
+vectordb_service_host_ip = os.getenv("VECTORDB_SERVICE_HOST_IP")
 
 set_seed(22)
 
 if 'config' not in st.session_state.keys():
-    st.session_state.config = reader.read_config('docs/config.yaml')
+    st.session_state.config = reader.read_config('/ui/config.yaml')
 
 config = st.session_state.config
 
+vectordb_service_host_port = int(config['vector_db']['port'])
 model_path = config['model_path']
 video_dir = config['videos']
 print(video_dir)
@@ -48,9 +48,18 @@ video.stVideo {
 """
 st.markdown(title_alignment, unsafe_allow_html=True)
 
+def set_proxy(addr:str):
+    # for DNS: "http://child-prc.intel.com:913"
+    # for Huggingface downloading: "http://proxy-igk.intel.com:912"
+    os.environ['http_proxy'] = addr
+    os.environ['https_proxy'] = addr
+    os.environ['HTTP_PROXY'] = addr
+    os.environ['HTTPS_PROXY'] = addr
+
 @st.cache_resource       
 def load_models():
-    #print("HF Token: ", HUGGINGFACEHUB_API_TOKEN)
+    print("HF Token: ", HUGGINGFACEHUB_API_TOKEN)
+    # set_proxy("http://proxy-igk.intel.com:912") # specific for PRC Usage
     model = AutoModelForCausalLM.from_pretrained(
         model_path, torch_dtype=torch.float32, device_map='auto', trust_remote_code=True, token=HUGGINGFACEHUB_API_TOKEN
     )
@@ -58,7 +67,7 @@ def load_models():
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True, token=HUGGINGFACEHUB_API_TOKEN)
     tokenizer.padding_size = 'right'
     streamer = TextIteratorStreamer(tokenizer, skip_prompt=True)
-    
+    # set_proxy("http://child-prc.intel.com:913") # specific for PRC Usage
     return model, tokenizer, streamer
 
 model, tokenizer, streamer = load_models()
@@ -109,13 +118,15 @@ class CustomLLM(LLM):
     
 def get_top_doc(results, qcnt):
     hit_score = {}
+    if results == None:
+        return None
     for r in results:
         try:
-            video_name = r.metadata['video']
+            video_name = r['metadata']['video']
             if video_name not in hit_score.keys(): hit_score[video_name] = 0
             hit_score[video_name] += 1
-        except:
-            pass
+        except KeyError as r:
+            print("no video name", r)
 
     x = dict(sorted(hit_score.items(), key=lambda item: -item[1]))
     
@@ -134,6 +145,15 @@ def play_video(x):
 
         st.video(video_bytes, start_time=0)
 
+def get_data(api_url:str, query:dict):
+    try:
+        response = requests.get(api_url, query)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(e)
+        return None
+
 if 'llm' not in st.session_state.keys():
     with st.spinner('Loading Models . . .'):
         time.sleep(1)
@@ -142,13 +162,9 @@ if 'llm' not in st.session_state.keys():
 if 'vs' not in st.session_state.keys():
     with st.spinner('Preparing RAG pipeline'):
         time.sleep(1)
-        host = st.session_state.config['vector_db']['host']
-        port = int(st.session_state.config['vector_db']['port'])
-        selected_db = st.session_state.config['vector_db']['choice_of_db']
-        st.session_state['vs'] = db.VS(host, port, selected_db)
-        
-        if st.session_state.vs.client == None:
-            print ('Error while connecting to vector DBs')
+        api_url = f"http://{vectordb_service_host_ip}:{vectordb_service_host_port}/health"
+        response = get_data(api_url, {})
+        st.session_state['vs'] = "done"
         
 # Store LLM generated responses
 if "messages" not in st.session_state.keys():
@@ -162,10 +178,11 @@ def RAG(prompt):
     
     with st.status("Querying database . . . ", expanded=True) as status:
         st.write('Retrieving 3 image docs') #1 text doc and 
-        results = st.session_state.vs.MultiModalRetrieval(prompt, n_images = 3) #n_texts = 1, n_images = 3)
+        api_url = f"http://{vectordb_service_host_ip}:{vectordb_service_host_port}/visual_rag_retriever/query"
+        results = get_data(api_url, {"prompt": prompt})
         status.update(label="Retrived Top matching video!", state="complete", expanded=False)
     
-    print (f'promt={prompt}\n')
+    print (f'prompt={prompt}\n')
                 
     top_doc = get_top_doc(results, st.session_state['qcnt'])
     print ('TOP DOC = ', top_doc)
@@ -218,11 +235,12 @@ def handle_message():
                 
                 scene_des = get_description(video_name)
                 formatted_prompt = ph.get_formatted_prompt(scene=scene_des, prompt=prompt)
-                
+                print(f'formatted_prompt = {formatted_prompt}')
                 full_response = ''
                 full_response = f"Most relevant retrived video is **{video_name}** \n\n"
                 
                 for new_text in st.session_state.llm.stream_res(formatted_prompt):
+                    print(f'new_text = {new_text}')
                     full_response += new_text
                     placeholder.markdown(full_response)
                 
