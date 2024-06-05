@@ -1,4 +1,6 @@
+import logging
 import os
+import sys
 import time
 import threading
 from typing import Any, List, Mapping, Optional
@@ -17,6 +19,12 @@ from utils import prompt_handler as ph
 HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
 vectordb_service_host_ip = os.getenv("VECTORDB_SERVICE_HOST_IP")
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s:     [%(asctime)s] %(message)s',
+    datefmt='%d/%m/%Y %I:%M:%S'
+    )
+
 set_seed(22)
 
 if 'config' not in st.session_state.keys():
@@ -27,9 +35,9 @@ config = st.session_state.config
 vectordb_service_host_port = int(config['vector_db']['port'])
 model_path = config['model_path']
 video_dir = config['videos']
-print(video_dir)
+logging.info(video_dir)
 video_dir = video_dir.replace('../', '')
-print(video_dir)
+logging.info(video_dir)
 st.set_page_config(initial_sidebar_state='collapsed', layout='wide')
 
 st.title("Video RAG")
@@ -58,8 +66,8 @@ def set_proxy(addr:str):
 
 @st.cache_resource       
 def load_models():
-    print("HF Token: ", HUGGINGFACEHUB_API_TOKEN)
-    # set_proxy("http://proxy-igk.intel.com:912") # specific for PRC Usage
+    logging.info(f"HF Token: {HUGGINGFACEHUB_API_TOKEN}")
+    set_proxy("http://proxy-igk.intel.com:912") # specific for PRC Usage
     model = AutoModelForCausalLM.from_pretrained(
         model_path, torch_dtype=torch.float32, device_map='auto', trust_remote_code=True, token=HUGGINGFACEHUB_API_TOKEN
     )
@@ -67,7 +75,7 @@ def load_models():
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True, token=HUGGINGFACEHUB_API_TOKEN)
     tokenizer.padding_size = 'right'
     streamer = TextIteratorStreamer(tokenizer, skip_prompt=True)
-    # set_proxy("http://child-prc.intel.com:913") # specific for PRC Usage
+    set_proxy("") # specific for PRC Usage
     return model, tokenizer, streamer
 
 model, tokenizer, streamer = load_models()
@@ -126,13 +134,13 @@ def get_top_doc(results, qcnt):
             if video_name not in hit_score.keys(): hit_score[video_name] = 0
             hit_score[video_name] += 1
         except KeyError as r:
-            print("no video name", r)
+            logging.info(f"no video name {r}")
 
     x = dict(sorted(hit_score.items(), key=lambda item: -item[1]))
     
     if qcnt >= len(x):
         return None
-    print (f'top docs = {x}')
+    logging.info (f'top docs = {x}')
     return {'video': list(x)[qcnt]}
 
 def play_video(x):
@@ -151,7 +159,7 @@ def get_data(api_url:str, query:dict):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(e)
+        logging.error(f"Connect to vector store failed, please see if it is running and check the log:{e}")
         return None
 
 if 'llm' not in st.session_state.keys():
@@ -164,6 +172,8 @@ if 'vs' not in st.session_state.keys():
         time.sleep(1)
         api_url = f"http://{vectordb_service_host_ip}:{vectordb_service_host_port}/health"
         response = get_data(api_url, {})
+        if response == None:
+            sys.exit(1)
         st.session_state['vs'] = "done"
         
 # Store LLM generated responses
@@ -182,10 +192,10 @@ def RAG(prompt):
         results = get_data(api_url, {"prompt": prompt})
         status.update(label="Retrived Top matching video!", state="complete", expanded=False)
     
-    print (f'prompt={prompt}\n')
+    logging.info (f'prompt={prompt}\n')
                 
     top_doc = get_top_doc(results, st.session_state['qcnt'])
-    print ('TOP DOC = ', top_doc)
+    logging.info (f'TOP DOC = {top_doc}')
     if top_doc == None:
         return None, None
     video_name = top_doc['video']
@@ -203,7 +213,7 @@ st.sidebar.button('Clear Chat History', on_click=clear_chat_history)
 
 if 'prevprompt' not in st.session_state.keys():
     st.session_state['prevprompt'] = ''
-    print("Setting prevprompt to None")
+    logging.info("Setting prevprompt to None")
 if 'prompt' not in st.session_state.keys():
     st.session_state['prompt'] = ''
 if 'qcnt' not in st.session_state.keys():
@@ -226,7 +236,7 @@ def handle_message():
                 st.session_state['prevprompt'] = prompt
             video_name, top_doc = RAG(prompt)
             if video_name == None:
-                full_response = f"No more relevant videos found. Select a different query. \n\n"
+                full_response = "No more relevant videos found. Select a different query. \n\n"
                 placeholder.markdown(full_response)
                 end = time.time()
             else:
@@ -235,12 +245,12 @@ def handle_message():
                 
                 scene_des = get_description(video_name)
                 formatted_prompt = ph.get_formatted_prompt(scene=scene_des, prompt=prompt)
-                print(f'formatted_prompt = {formatted_prompt}')
+                # logging.info(f'formatted_prompt = {formatted_prompt}')
                 full_response = ''
                 full_response = f"Most relevant retrived video is **{video_name}** \n\n"
                 
                 for new_text in st.session_state.llm.stream_res(formatted_prompt):
-                    print(f'new_text = {new_text}')
+                    # logging.info(f'new_text = {new_text}')
                     full_response += new_text
                     placeholder.markdown(full_response)
                 

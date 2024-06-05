@@ -17,17 +17,10 @@ RUN apt-get update && \
 COPY ./video_ingest/requirements.txt requirements.txt
 
 RUN python3.9 -m venv /root/myenv
-# RUN . /root/myenv/bin/activate && \
-#     pip install --no-cache-dir -r requirements.txt && \
-#     deactivate
 
 RUN . /root/myenv/bin/activate && \
     pip install --no-cache-dir -r requirements.txt && \
     deactivate
-
-# RUN . /root/myenv/bin/activate && \
-#     pip install metafunctions && \
-#     deactivate
 
 COPY ./video_ingest/scripts scripts/
 COPY ./utils scripts/utils/

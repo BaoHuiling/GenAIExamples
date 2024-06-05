@@ -1,3 +1,4 @@
+accelerate
 langchain-experimental
 open-clip-torch
 streamlit
