@@ -1,0 +1,11 @@
+main_service:
+  port: 9001
+chroma_service:
+  port: 8000
+vdms_service:
+  port: 55555
+  engine: "FaissFlat"
+text_embedder: "all-MiniLM-L12-v2"
+image_embedder: "ViT-g-14"
+image_checkpoint: "laion2b_s34b_b88k"
+handler_pickle_path: "/home/data/handler.pkl"
