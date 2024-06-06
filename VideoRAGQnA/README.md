@@ -71,7 +71,7 @@ export HUGGINGFACEHUB_API_TOKEN='<your HF token>'
 
 ```bash
 # build vector store
-cd VideoRAGQnA/vector_stores
+cd VideoRAGQnA/vectorDB_service
 docker compose build
 # build video ingestor and UI
 cd .. # VideoRAGQnA
@@ -83,8 +83,9 @@ docker compose build
 Run Vectorstores microservice, which will listen on port 9001. This will setup both Chroma and Intel VDMS.
 
 ```bash
-cd vector_stores
+cd vectorDB_service
 docker compose up
+# wait until "Application startup complete"
 ```
 
 Run video ingestor microservice, this will process the videos, embedding and store them to vectorDB. The current framework supports both Chroma DB and Intel's VDMS, use either of them by specify the env variable `CHOICE_OF_DB`.

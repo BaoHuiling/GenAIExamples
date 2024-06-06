@@ -24,6 +24,9 @@ logging.basicConfig(
     datefmt='%d/%m/%Y %I:%M:%S'
     )
 
+# persistent flag
+is_persistent = os.getenv("IS_PERSISTENT", "False")
+
 @singleton
 class DB_Handler:
     
@@ -177,10 +180,12 @@ class DB_Handler:
                     description="The search kwargs to use",
                 )
             )
-        if db_name == 'chroma':
-            self.save_to_pkl_file(self.configs['handler_pickle_path'])
-        else:
-            pass
+        if is_persistent:
+            if db_name == 'chroma':
+                logging.info("Saving to pickle file . . .")
+                self.save_to_pkl_file(self.configs['handler_pickle_path'])
+            else:
+                pass
             
     def delete_collection(self, db_name:str, table:str):
         self.client[db_name].delete_collection(table)

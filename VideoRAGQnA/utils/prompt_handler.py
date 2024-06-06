@@ -9,3 +9,5 @@ PROMPT = open("utils/prompt_template.jinja2").read().strip()
 def get_formatted_prompt(scene, prompt, history):
     env = Environment(loader=BaseLoader(), autoescape=select_autoescape(["html", "xml"]))
     template = env.from_string(PROMPT)
+    
+    return template.render(scene=scene, prompt=prompt, history=history)

@@ -3,8 +3,9 @@ services:
     image: chromadb/chroma
     environment:
       - ANONYMIZED_TELEMETRY=False
-      - IS_PERSISTENT=True
-      - PERSIST_DIRECTORY=${PERSIST_DIRECTORY:-/chroma/chroma}
+      # - ALLOW_RESET=TRUE
+      # - IS_PERSISTENT=True
+      # - PERSIST_DIRECTORY=${PERSIST_DIRECTORY:-/chroma/chroma}
     ports:
       - "8000:8000"
     volumes:

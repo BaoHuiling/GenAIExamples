@@ -16,6 +16,8 @@ from routers import (
 from core.db_handler import DB_Handler
 
 CONFIG_PATH = "/gateway/conf/conf.yaml"
+# persistent flag
+is_persistent = os.getenv("IS_PERSISTENT", "False")
 
 # align /etc/timezone and /etc/localtime
 command = "TZ=`cat /etc/timezone` && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime"
@@ -28,9 +30,10 @@ async def lifespan(app: FastAPI):
     app.state.db_handler = DB_Handler(configs)
 
     # Load the objects from the pickle file
-    handler_pickle_path = configs['handler_pickle_path']
-    if os.path.exists(handler_pickle_path):
-        app.state.db_handler.load_from_pkl_file(handler_pickle_path)
+    if is_persistent == "True":
+        handler_pickle_path = configs['handler_pickle_path']
+        if os.path.exists(handler_pickle_path):
+            app.state.db_handler.load_from_pkl_file(handler_pickle_path)
     
     yield
 
