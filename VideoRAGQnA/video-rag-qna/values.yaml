@@ -1,0 +1,58 @@
+# Default values for video-rag-qna.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+### Global Configuration ###
+# REGISTRY: "172.16.186.168:20666/"
+# RELEASE: ":latest"
+
+image:
+  repository: ""
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "v1"
+
+proxy:
+  http: ""
+  https: ""
+
+service:
+  user: huilingb # OS user where the models are cached
+  vectordb_host: 172.16.186.168
+  choice_of_db: chroma
+
+chroma:
+  anonymized_telemetry: false
+  allow_reset: false
+  is_persistent: false
+  persist_directory: /chroma/chroma
+ 
+huggingface:
+  api_token: "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"
+ 
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

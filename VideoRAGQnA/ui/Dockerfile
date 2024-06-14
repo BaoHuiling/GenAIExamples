@@ -25,5 +25,8 @@ COPY ./ui ./
 COPY ./utils ./utils/
 COPY ./conf ./
 
+COPY ./video_ingest/videos /video_ingest/videos/
+COPY ./video_ingest/scene_description /video_ingest/scene_description/
+
 ENTRYPOINT ["/root/myenv/bin/streamlit", "run", "video-rag-ui.py", "--server.address", "0.0.0.0", "--server.port", "50055"]]
 

@@ -7,5 +7,5 @@
 
 __pycache__/
 
-VideoRAGQnA/video_ingest/frame_metadata
-VideoRAGQnA/video_ingest/frames
+**/frame_metadata
+**/frames
