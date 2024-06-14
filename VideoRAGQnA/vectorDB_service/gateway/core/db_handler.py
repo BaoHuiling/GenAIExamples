@@ -286,7 +286,7 @@ class DB_Handler:
                 elif (
                     date_out == str(today_date) and time_out == "00:00:00"
                 ):  ## when search_date interprates words as dates output is todays date + time 00:00:00
-                    self.update_image_retrieve["vdms"] = self.image_db["vdms"][table].as_retriever(
+                    self.update_image_retriever["vdms"] = self.image_db["vdms"][table].as_retriever(
                         search_type="mmr", search_kwargs={"k": n_images}
                     )
                 else:  ## Interval  of time:last 48 hours, last 2 days,..
@@ -311,7 +311,7 @@ class DB_Handler:
                     )
                 else:  ## Interval  of time:last 48 hours, last 2 days,..
                     constraints = {"date_time": [">=", {"_date": iso_date_time}]}
-                    self.update_image_retriever = self.image_db["chroma"][table].as_retriever(
+                    self.update_image_retriever["chroma"] = self.image_db["chroma"][table].as_retriever(
                         search_type="mmr",
                         search_kwargs={
                             "filter": {
