@@ -1,0 +1,42 @@
+# Core document parsing and indexing dependencies
+# All packages are Windows-compatible and can be installed via pip
+
+# LlamaIndex - RAG framework for document processing
+llama-index==0.12.36
+llama-index-core==0.12.37
+llama-index-readers-file==0.4.7
+
+# Unstructured - Advanced document parsing (txt, pdf, ppt, docx)
+unstructured[all-docs]==0.16.14
+unstructured[pdf]==0.16.14
+
+# Document processing libraries
+python-docx==1.1.2
+pillow>=10.4.0
+docx2txt==0.8
+
+# Vector databases - Aligned with EdgeCraftRAG
+faiss-cpu>=1.8.0.post1                       # Local vector database (EdgeCraftRAG default)
+# pymilvus==2.5.10                            # Uncomment for Milvus (EdgeCraftRAG production)
+# chromadb>=0.4.0                             # Uncomment for ChromaDB (additional option)
+
+# LlamaIndex vector store integrations
+llama-index-vector-stores-faiss==0.4.0       # EdgeCraftRAG primary
+# llama-index-vector-stores-milvus==0.8.3    # EdgeCraftRAG production scale
+# llama-index-vector-stores-chroma           # Additional option
+
+# Embeddings - Aligned with EdgeCraftRAG
+llama-index-embeddings-openvino==0.5.2       # Default: Intel-optimized local embeddings
+torch>=2.5.0                                  # Required for OpenVINO
+transformers>=4.40.0                          # Required for model conversion
+
+# Alternative: Direct HuggingFace (without OpenVINO optimization)
+# llama-index-embeddings-huggingface==0.5.0
+
+# PDF and image processing
+pdf2image==1.17.0
+pytesseract==0.3.13
+
+# Utilities
+pydantic>=2.0.0
+tqdm>=4.66.0
